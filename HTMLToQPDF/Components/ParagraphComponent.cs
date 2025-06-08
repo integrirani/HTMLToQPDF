@@ -109,7 +109,118 @@ namespace HTMLQuestPDF.Components
 
         public TextStyle GetTextStyle(HtmlNode element)
         {
-            return textStyles.TryGetValue(element.Name.ToLower(), out TextStyle? style) ? style : TextStyle.Default;
+            var textStyle = textStyles.TryGetValue(element.Name.ToLower(), out TextStyle? style) ? style : TextStyle.Default;
+
+            var styleAttribute = element.GetAttributeValue("style", "").ToLowerInvariant();
+            var styleAttributes = styleAttribute.Split(';', StringSplitOptions.RemoveEmptyEntries);
+            Dictionary<string, string> styles = new Dictionary<string, string>();
+
+            foreach (var attr in styleAttributes)
+            {
+                var parts = attr.Split(':', StringSplitOptions.RemoveEmptyEntries);
+                if (parts.Length == 2)
+                {
+                    styles[parts[0].Trim()] = parts[1].Trim();
+                }
+            }
+
+            var fontWeight = styles.GetValueOrDefault("font-weight", "").ToLowerInvariant();
+
+            if (fontWeight == "bold")
+            {
+                textStyle = textStyle.Bold();
+            }
+
+            var fontStyle = styles.GetValueOrDefault("font-style", "").ToLowerInvariant();
+
+            if (fontStyle == "italic")
+            {
+                textStyle = textStyle.Italic();
+            }
+
+            var fontFamily = styles.GetValueOrDefault("font-family", "").ToLowerInvariant();
+
+            if (!string.IsNullOrEmpty(fontFamily))
+            {
+                textStyle = textStyle.FontFamily(fontFamily);
+            }
+
+            var color = styles.GetValueOrDefault("color", "").ToLowerInvariant();
+
+            var rgbMatch = System.Text.RegularExpressions.Regex.Match(color, @"rgb\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*\)");
+
+            if (rgbMatch.Success)
+            {
+                var r = int.Parse(rgbMatch.Groups[1].Value);
+                var g = int.Parse(rgbMatch.Groups[2].Value);
+                var b = int.Parse(rgbMatch.Groups[3].Value);
+
+                textStyle = textStyle.FontColor(RgbToHex(r, g, b));
+            }
+
+            var backgroundColor = styles.GetValueOrDefault("background-color", "").ToLowerInvariant();
+            rgbMatch = System.Text.RegularExpressions.Regex.Match(backgroundColor, @"rgb\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*\)");
+
+            if (rgbMatch.Success)
+            {
+                var r = int.Parse(rgbMatch.Groups[1].Value);
+                var g = int.Parse(rgbMatch.Groups[2].Value);
+                var b = int.Parse(rgbMatch.Groups[3].Value);
+
+                textStyle = textStyle.BackgroundColor(RgbToHex(r, g, b));
+            }
+
+            var textDecorationLine = styles.GetValueOrDefault("text-decoration-line", "").ToLowerInvariant();
+
+            if (textDecorationLine == "underline")
+            {
+                textStyle = textStyle.Underline();
+            }
+            else if (textDecorationLine == "line-through")
+            {
+                textStyle = textStyle.Strikethrough();
+            }
+
+            var fontSize = styles.GetValueOrDefault("font-size", "").ToLowerInvariant();
+
+            if (int.TryParse(fontSize, out int fontSizeValue))
+            {
+                textStyle = textStyle.FontSize(fontSizeValue);
+            }
+            else if (fontSize == "x-small")
+            {
+                textStyle = textStyle.FontSize(7f);
+            }
+            else if (fontSize == "medium")
+            {
+                textStyle = textStyle.FontSize(13f);
+            }
+            else if (fontSize == "large")
+            {
+                textStyle = textStyle.FontSize(14f);
+            }
+            else if (fontSize == "larger")
+            {
+                textStyle = textStyle.FontSize(16f);
+            }
+            else if (fontSize == "x-large")
+            {
+                textStyle = textStyle.FontSize(18f);
+            }
+            else if (fontSize == "xx-large")
+            {
+                textStyle = textStyle.FontSize(24f);
+            }
+            else if (fontSize == "xxx-large")
+            {
+                textStyle = textStyle.FontSize(48f);
+            }
+
+            return textStyle;
+        }
+        private static string RgbToHex(int r, int g, int b)
+        {
+            return $"#{r:X2}{g:X2}{b:X2}";
         }
     }
 }
